@@ -60,6 +60,7 @@ export default class ToDo extends React.Component {
                           onChangeText={this._controllInput}
                           returnKeyType={"done"} 
                           onBlur={this._finishEditing} // onBlur 는 다른 곳을 클릭했을 때 실행할 동작
+                          underlineColorAndroid={"transparent"} // 안드로이드에서 밑줄 투명
                         />
                     ) : (
                         <Text style={[
@@ -85,7 +86,7 @@ export default class ToDo extends React.Component {
                                     <Text style={styles.actionText}>✏️</Text>
                                 </View>
                             </TouchableOpacity>
-                            <TouchableOpacity onPressOut={() => deleteToDo(id)}>
+                            <TouchableOpacity onPressOut={(event) => {event.stopPropagation; deleteToDo(id); }}>
                                 <View style={styles.actionContainer}>
                                     <Text style={styles.actionText}>❌</Text>
                                 </View>
@@ -97,7 +98,8 @@ export default class ToDo extends React.Component {
         );
     }
     
-    _toggleComplete = () => {
+    _toggleComplete = (event) => {
+        event.stopPropagation();
         const { isCompleted, uncompleteToDo, completeToDo, id } = this.props;
         if (isCompleted) {
             uncompleteToDo(id);
@@ -111,7 +113,8 @@ export default class ToDo extends React.Component {
         // })
     };
 
-    _startEditing = () => {
+    _startEditing = (event) => {
+        event.stopPropagation();
         // const { text } = this. props;
         this.setState({
             isEditing: true,
@@ -119,7 +122,8 @@ export default class ToDo extends React.Component {
         });
     };
 
-    _finishEditing = () => {
+    _finishEditing = (event) => {
+        event.stopPropagation();
         const { toDoValue } = this.state;
         const { id, updateToDo } = this.props;
 

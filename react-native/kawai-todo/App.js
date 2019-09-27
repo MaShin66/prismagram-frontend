@@ -1,7 +1,7 @@
 // file: App.js
 
 import React from 'react';
-import { StyleSheet, Text, View, StatusBar, TextInput, Dimensions, Platform, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, TextInput, Dimensions, Platform, ScrollView, AsyncStorage } from 'react-native';
 import ToDo from './ToDo';
 import { AppLoading } from 'expo';
 import uuidv1 from 'uuid/v1';
@@ -43,9 +43,10 @@ export default class App extends React.Component {
             returnKeyType={"done"} // 한 줄에 쓸거라 엔터키가 'done'으로 표시
             autoCorrect={false} // 자동고침 없애기
             onSubmitEditing={this._addToDo} // submit 버튼이 눌렸을 때
+            underlineColorAndroid={"transparent"} // 안드로이드에서 밑줄 투명
           />
           <ScrollView contentContainerStyle={styles.toDos}>
-            {Object.values(toDos).map(toDo => (
+            {Object.values(toDos).reverse().map(toDo => (
               <ToDo 
                 key={toDo.id} 
                 {...toDo} 
@@ -68,13 +69,20 @@ export default class App extends React.Component {
     });
   };
 
-  _loadToDos = () => {
-    this.setState({
-      loadedToDos: true
-    });
+  _loadToDos = async () => {
+    try {
+      const toDos = await AsyncStorage.getItem("toDos"); // 디스크에 저장
+      const parsedToDos = JSON.parse(toDos);
+      this.setState({
+        loadedToDos: true, 
+        toDos: parsedToDos || {} // 처음 실행하면 없기에 {} 도 한다.
+      });
+    } catch(err) {
+      console.log('err: ', err);
+    }
   };
 
-  // submit 버튼 누를 때
+  // 리스트 추가할 때
   _addToDo = () => {
     const { newToDo } = this.state;
     // newToDo 에 뭔가 적혀있다면
@@ -94,6 +102,7 @@ export default class App extends React.Component {
             createdAt: Date.now()
           }
         };
+
         const newState = {
           ...prevState,
           newToDo: "",
@@ -102,6 +111,7 @@ export default class App extends React.Component {
             ...newToDoObject // 이거 주석처리하면 값 입력이 안됨 근데 위에건 주석처리해도 되네..?
           }
         };
+
         // newState:  Object {
         //   "loadedToDos": true,
         //   "newToDo": "",
@@ -114,23 +124,28 @@ export default class App extends React.Component {
         //     },
         //   },
         // }
+        this._saveToDos(newState.toDos);
         return { ...newState };
       })
     }
   };
 
-  _deleteToDo = (id) => {
+  // 리스트 삭제할 때
+  _deleteToDo = id => {
     this.setState(prevState => {
       const toDos = prevState.toDos;
+      // const toDos = this.state.toDos; 이것도 되긴 한데.. 같은 의미인가
       delete toDos[id];
       const newState = {
         ...prevState,
         ...toDos
       };
+      this._saveToDos(newState.toDos);
       return { ...newState };
     });
   };
   
+  // 완료되지 않은 목록들
   _uncompleteToDo = id => {
     this.setState(prevState => {
       const newState = {
@@ -143,12 +158,15 @@ export default class App extends React.Component {
           }
         }
       };
+      this._saveToDos(newState.toDos);
       return { ...newState };
     })
   };
 
-  _completeToDo = (id) => {
+  // 완료된 목록들
+  _completeToDo = id => {
     this.setState(prevState => {
+      console.log('prevState: ', prevState);
       const newState = {
         ...prevState,
         toDos: {
@@ -159,10 +177,12 @@ export default class App extends React.Component {
           }
         }
       };
+      this._saveToDos(newState.toDos);
       return { ...newState };
     })
   };
 
+  // 리스트 수정
   _updateToDo = (id, text) => {
     this.setState(prevState => {
       const newState = {
@@ -175,8 +195,14 @@ export default class App extends React.Component {
           }
         }
       };
+      this._saveToDos(newState.toDos);
       return { ...newState };
-    }) 
+    }); 
+  };
+
+  _saveToDos = newToDos => { // 데이터에 저장하기 위한 함수
+    // console.log(JSON.stringify(newToDos));
+    const saveToDos = AsyncStorage.setItem("toDos", JSON.stringify(newToDos));
   }
 }
 
